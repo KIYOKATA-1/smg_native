@@ -5,7 +5,6 @@ import LoginScreen from './src/screens/LoginScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import ProductDetailsScreen from './src/screens/ProductDetails';
 import CourseDetailsScreen from './src/screens/CourseDetails';
-import LectureDetailsScreen from './src/screens/LectureDetailsScreen';
 const Stack = createStackNavigator();
 
 export default function App() {
@@ -20,7 +19,6 @@ export default function App() {
         />
         <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
         <Stack.Screen name="CourseDetails" component={CourseDetailsScreen} />
-        <Stack.Screen name="LectureDetails" component={LectureDetailsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
