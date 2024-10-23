@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import { useNavigation, useRoute, RouteProp, NavigationProp } from '@react-navigation/native';
 import { CourseService } from '../../services/course.service';
 import { ICourseDetails } from '../../services/course.types';
-import { ITeacher } from '../../services/course.types';
+import { ProductStyle } from '../../styles/Product';
+import IMAGES from '../../assets/img/image';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faAngleLeft } from '@fortawesome/free-solid-svg-icons';
 
 type RootStackParamList = {
   ProductDetails: { courseIds: number[]; token: string };
@@ -13,7 +16,7 @@ type RootStackParamList = {
 type ProductDetailsRouteProp = RouteProp<RootStackParamList, 'ProductDetails'>;
 type ProductDetailsNavigationProp = NavigationProp<RootStackParamList, 'CourseDetails'>;
 
-const ProductDetailsScreen = () => {
+const ProductScreen = () => {
   const route = useRoute<ProductDetailsRouteProp>();
   const navigation = useNavigation<ProductDetailsNavigationProp>();
   const { courseIds, token } = route.params;
@@ -43,31 +46,43 @@ const ProductDetailsScreen = () => {
   };
 
   if (loading) {
-    return <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />;
+    return <ActivityIndicator size="large" style={ProductStyle.loader} />;
   }
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={courses}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.courseItem} onPress={() => navigateToCourse(item.id)}>
-            <Text style={styles.courseName}>{item.name}</Text>
-            
+    <SafeAreaView style={ProductStyle.container}>
+      <View style={ProductStyle.courseContainer}>
+        <View style={ProductStyle.topZone}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={ProductStyle.backBtn}>
+            <FontAwesomeIcon icon={faAngleLeft} size={24} color="#260094" />
           </TouchableOpacity>
-        )}
-      />
-    </View>
+          <Text style={ProductStyle.topZoneTitle}>
+            Course
+          </Text>
+        </View>
+
+        <FlatList
+          style={ProductStyle.sbjctList}
+          data={courses}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => navigateToCourse(item.id)} style={ProductStyle.product}>
+              <Text style={ProductStyle.productTitle}>{item.name}</Text>
+              <View style={ProductStyle.productData}>
+                <Image
+                  source={IMAGES.GROUP}
+                  style={{ height: 40, width: 80, resizeMode: 'contain', marginVertical: 5 }}
+                />
+                <Text style={{ fontSize: 14, fontWeight: 'thin' }}>
+                  + {item.students?.count || 0} студентов
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+    </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, paddingTop: 60 },
-  loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  courseItem: { backgroundColor: '#f0f0f0', padding: 15, borderRadius: 10, marginBottom: 10 },
-  courseName: { fontSize: 18, fontWeight: 'bold' },
-  courseDescription: { fontSize: 14, color: '#555' },
-});
-
-export default ProductDetailsScreen;
+export default ProductScreen;

@@ -1,18 +1,18 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, 
   Text, 
-  StyleSheet, 
-  ActivityIndicator, 
-  ScrollView, 
   TouchableOpacity, 
+  ScrollView, 
+  ActivityIndicator, 
   Alert, 
-  Dimensions 
+  SafeAreaView 
 } from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { CourseService } from '../../services/course.service';
 import { ICourseDetails, ContentData } from '../../services/course.types';
 import { WebView } from 'react-native-webview';
+import { CourseStyle } from '../../styles/Course';
 
 type RootStackParamList = {
   CourseDetails: { courseId: number; token: string };
@@ -24,10 +24,11 @@ const CourseDetailsScreen = () => {
   const route = useRoute<CourseDetailsRouteProp>();
   const { courseId, token } = route.params;
 
+  const [activeTab, setActiveTab] = useState<'syllabus' | 'unscheduledTest'>('syllabus');
   const [course, setCourse] = useState<ICourseDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
-  const [selectedLecture, setSelectedLecture] = useState<ContentData | null>(null);
+  const [selectedContent, setSelectedContent] = useState<ContentData | null>(null);
 
   const fetchCourse = useCallback(async () => {
     setLoading(true);
@@ -46,78 +47,35 @@ const CourseDetailsScreen = () => {
     fetchCourse();
   }, [fetchCourse]);
 
-  const handleLectureSelect = (lecture: ContentData) => {
-    setSelectedLecture(lecture);
-  };
-
-  const handleBackToCourse = () => {
-    setSelectedLecture(null);
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
-
-  if (!course) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Курс не найден</Text>
-      </View>
-    );
-  }
-
-  if (selectedLecture) {
-    return (
-      <ScrollView style={styles.container}>
-        <TouchableOpacity onPress={handleBackToCourse}>
-          <Text style={styles.backButton}>Назад к курсу</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>{selectedLecture.name}</Text>
-        <Text style={styles.description}>{selectedLecture.description}</Text>
-        <Text style={styles.content}>{selectedLecture.text}</Text>
-        {selectedLecture.file ? (
-          <View style={styles.pdfContainer}>
-            <WebView
-              source={{ uri: selectedLecture.file }}
-              style={styles.pdf}
-              onError={() => Alert.alert('Ошибка', 'Не удалось загрузить PDF.')}
-            />
-          </View>
-        ) : (
-          <Text>Файл PDF не найден.</Text>
-        )}
-      </ScrollView>
-    );
-  }
-
-  return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>{course.name}</Text>
-      <Text style={styles.description}>{course.description}</Text>
-
-      {course.course_weeks?.map((week) => (
-        <View key={week.id} style={styles.weekContainer}>
+  const renderSyllabus = () => (
+    <ScrollView>
+      {(course?.course_weeks ?? []).map((week) => (
+        <View key={week.id} style={CourseStyle.weekContainer}>
           <TouchableOpacity 
-            style={styles.weekHeader} 
+            style={CourseStyle.weekHeader} 
             onPress={() => setExpandedWeek(expandedWeek === week.id ? null : week.id)}
           >
-            <Text style={styles.weekText}>{week.name}</Text>
+            <Text style={CourseStyle.weekText}>{week.name}</Text>
           </TouchableOpacity>
           {expandedWeek === week.id && (
-            <View style={styles.lessonContainer}>
-              {week.lessons_data.map((lesson) => (
-                <View key={lesson.id} style={styles.lessonItem}>
-                  <Text style={styles.lessonText}>{lesson.name}</Text>
+            <View style={CourseStyle.lessonContainer}>
+              {week.lessons_data.map((lesson, index) => (
+                <View key={lesson.id} style={CourseStyle.lessonItem}>
+                  <Text style={CourseStyle.lessonText}>{index + 1} урок</Text>
                   {lesson.lectures_data.map((lecture) => (
                     <TouchableOpacity 
                       key={lecture.id} 
-                      onPress={() => handleLectureSelect(lecture)}
+                      onPress={() => setSelectedContent(lecture)}
                     >
-                      <Text style={styles.contentText}>{lecture.name}</Text>
+                      <Text style={CourseStyle.contentText}>📄 {lecture.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  {lesson.video_lessons_data.map((video) => (
+                    <TouchableOpacity 
+                      key={video.id} 
+                      onPress={() => setSelectedContent(video)}
+                    >
+                      <Text style={CourseStyle.contentText}>🎥 {video.name}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -128,87 +86,56 @@ const CourseDetailsScreen = () => {
       ))}
     </ScrollView>
   );
-};
 
-const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    padding: 20, 
-    paddingTop: 60, 
-    backgroundColor: '#f0f0f0' 
-  },
-  title: { 
-    fontSize: 24, 
-    fontWeight: 'bold', 
-    marginBottom: 20, 
-    color: '#333' 
-  },
-  description: { 
-    fontSize: 16, 
-    color: '#555', 
-    marginBottom: 20 
-  },
-  content: {  // Добавлен стиль для content
-    fontSize: 14, 
-    color: '#333', 
-    marginBottom: 20 
-  },
-  loaderContainer: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center' 
-  },
-  errorText: { 
-    fontSize: 18, 
-    color: 'red' 
-  },
-  backButton: { 
-    fontSize: 18, 
-    color: 'blue', 
-    marginBottom: 10 
-  },
-  weekContainer: { 
-    marginBottom: 15, 
-    backgroundColor: '#4a4a4a', 
-    borderRadius: 8, 
-    overflow: 'hidden' 
-  },
-  weekHeader: { 
-    padding: 15, 
-    backgroundColor: '#2a2a2a', 
-    borderBottomWidth: 1, 
-    borderColor: '#444' 
-  },
-  weekText: { 
-    fontSize: 20, 
-    fontWeight: 'bold', 
-    color: 'white' 
-  },
-  lessonContainer: { 
-    padding: 10, 
-    backgroundColor: '#3a3a3a' 
-  },
-  lessonItem: { 
-    marginBottom: 10 
-  },
-  lessonText: { 
-    fontSize: 18, 
-    fontWeight: 'bold', 
-    color: '#ddd' 
-  },
-  contentText: { 
-    fontSize: 16, 
-    color: '#bbb', 
-    marginLeft: 10 
-  },
-  pdfContainer: { 
-    height: Dimensions.get('window').height / 2, 
-    marginTop: 20 
-  },
-  pdf: { 
-    flex: 1, 
-    width: Dimensions.get('window').width 
-  },
-});
+  if (loading) {
+    return (
+      <View style={CourseStyle.loader}>
+        <ActivityIndicator size="large" color="#7C77C6" />
+      </View>
+    );
+  }
+
+  if (!course) {
+    return (
+      <View style={CourseStyle.container}>
+        <Text style={{ color: 'red', textAlign: 'center', fontSize: 18 }}>
+          Курс не найден
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView style={CourseStyle.container}>
+      <View style={CourseStyle.courseContainer}>
+        <Text style={CourseStyle.title}>{course.name}</Text>
+        <View style={CourseStyle.tabsContainer}>
+          <TouchableOpacity 
+            style={[
+              CourseStyle.tabButton, 
+              activeTab === 'syllabus' && CourseStyle.activeTab
+            ]}
+            onPress={() => setActiveTab('syllabus')}
+          >
+            <Text style={CourseStyle.tabText}>Силлабус</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[
+              CourseStyle.tabButton, 
+              activeTab === 'unscheduledTest' && CourseStyle.activeTab
+            ]}
+            onPress={() => setActiveTab('unscheduledTest')}
+          >
+            <Text style={CourseStyle.tabText}>Внеплановый тест</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={CourseStyle.contentContainer}>
+          {activeTab === 'syllabus' ? renderSyllabus() : <Text>Тесты недоступны</Text>}
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+};
 
 export default CourseDetailsScreen;
